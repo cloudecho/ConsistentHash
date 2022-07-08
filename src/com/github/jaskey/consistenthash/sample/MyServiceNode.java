@@ -55,7 +55,8 @@ public class MyServiceNode implements Node {
         //hash them to hash ring
         ConsistentHashRouter<MyServiceNode> consistentHashRouter = new ConsistentHashRouter<>(
                 Arrays.asList(node1, node2, node3, node4),
-                1600); // 1600 virtual node
+                1600,  // 1600 virtual node
+                Murmur3HashFunction.MURMUR3_HASH_32);
 
         //we have 5 requester ip, we are trying them to route to one service node
         String requestIP1 = "192.168.0.1";

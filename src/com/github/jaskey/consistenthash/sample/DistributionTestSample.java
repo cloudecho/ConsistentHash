@@ -39,7 +39,7 @@ public class DistributionTestSample {
         ConsistentHashRouter<MyServiceNode> consistentHashRouter = new ConsistentHashRouter<>(
                 Arrays.asList(node1, node2, node3, node4),
                 1600, // 1600 virtual node
-                Murmur3HashFunction.MURMUR3_HASH);
+                Murmur3HashFunction.MURMUR3_HASH_32);
 
         List<String> requestIps = new ArrayList<>();
         for (int i = 0; i < 100000; i++) {
