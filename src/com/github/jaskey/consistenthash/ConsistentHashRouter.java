@@ -24,25 +24,23 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
+ * @param <T>
  * @author linjunjie1103@gmail.com
- *
+ * <p>
  * To hash Node objects to a hash ring with a certain amount of virtual node.
  * Method routeNode will return a Node instance which the object key should be allocated to according to consistent hash algorithm
- *
- * @param <T>
  */
 public class ConsistentHashRouter<T extends Node> {
     private final SortedMap<Long, VirtualNode<T>> ring = new TreeMap<>();
     private final HashFunction hashFunction;
 
     public ConsistentHashRouter(Collection<T> pNodes, int vNodeCount) {
-        this(pNodes,vNodeCount, new MD5Hash());
+        this(pNodes, vNodeCount, new MD5Hash());
     }
 
     /**
-     *
-     * @param pNodes collections of physical nodes
-     * @param vNodeCount amounts of virtual nodes
+     * @param pNodes       collections of physical nodes
+     * @param vNodeCount   amounts of virtual nodes
      * @param hashFunction hash Function to hash Node instances
      */
     public ConsistentHashRouter(Collection<T> pNodes, int vNodeCount, HashFunction hashFunction) {
@@ -59,7 +57,8 @@ public class ConsistentHashRouter<T extends Node> {
 
     /**
      * add physic node to the hash ring with some virtual nodes
-     * @param pNode physical node needs added to hash ring
+     *
+     * @param pNode      physical node needs added to hash ring
      * @param vNodeCount the number of virtual node of the physical node. Value should be greater than or equals to 0
      */
     public void addNode(T pNode, int vNodeCount) {
@@ -73,6 +72,7 @@ public class ConsistentHashRouter<T extends Node> {
 
     /**
      * remove the physical node from the hash ring
+     *
      * @param pNode
      */
     public void removeNode(T pNode) {
@@ -88,6 +88,7 @@ public class ConsistentHashRouter<T extends Node> {
 
     /**
      * with a specified key, route the nearest Node instance in the current hash ring
+     *
      * @param objectKey the object key to find a nearest Node
      * @return
      */
@@ -96,7 +97,7 @@ public class ConsistentHashRouter<T extends Node> {
             return null;
         }
         Long hashVal = hashFunction.hash(objectKey);
-        SortedMap<Long,VirtualNode<T>> tailMap = ring.tailMap(hashVal);
+        SortedMap<Long, VirtualNode<T>> tailMap = ring.tailMap(hashVal);
         Long nodeHashVal = !tailMap.isEmpty() ? tailMap.firstKey() : ring.firstKey();
         return ring.get(nodeHashVal).getPhysicalNode();
     }
@@ -112,15 +113,16 @@ public class ConsistentHashRouter<T extends Node> {
         return replicas;
     }
 
-    
+
     //default hash function
-    private static class MD5Hash implements HashFunction {
-        MessageDigest instance;
+    public static class MD5Hash implements HashFunction {
+        private MessageDigest instance;
 
         public MD5Hash() {
             try {
                 instance = MessageDigest.getInstance("MD5");
             } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("NoSuchAlgorithmException (MD5)", e);
             }
         }
 
@@ -128,14 +130,12 @@ public class ConsistentHashRouter<T extends Node> {
         public long hash(String key) {
             instance.reset();
             instance.update(key.getBytes());
-            byte[] digest = instance.digest();
+            byte[] bKey = instance.digest();
 
-            long h = 0;
-            for (int i = 0; i < 4; i++) {
-                h <<= 8;
-                h |= ((int) digest[i]) & 0xFF;
-            }
-            return h;
+            return ((long) (bKey[3] & 0xFF) << 24)
+                    | ((long) (bKey[2] & 0xFF) << 16)
+                    | ((long) (bKey[1] & 0xFF) << 8)
+                    | (bKey[0] & 0xFF);
         }
     }
 

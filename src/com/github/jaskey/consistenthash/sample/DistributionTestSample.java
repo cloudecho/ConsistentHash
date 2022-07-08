@@ -17,7 +17,6 @@
 package com.github.jaskey.consistenthash.sample;
 
 import com.github.jaskey.consistenthash.ConsistentHashRouter;
-import com.github.jaskey.consistenthash.Node;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * a test sample to test the hash function routing distribution, by default ConsistentHashRouter will use a inner MD5 hash algorithm
  */
-public class DistributionTestSample{
+public class DistributionTestSample {
 
     public static void main(String[] args) {
         //initialize 4 service node
@@ -37,27 +36,40 @@ public class DistributionTestSample{
         //hash them to hash ring.
         // 1. By default a MD5 hash function will be used, you can modify a little if you want to test your own hash funtion
         // 2. Another factor which is will influence distribution is the numbers of virtual nodes, you can change this factor , below, we use 20 virtual nodes for each physical node.
-        ConsistentHashRouter<MyServiceNode> consistentHashRouter = new ConsistentHashRouter<>(Arrays.asList(node1,node2,node3,node4),20);//20 virtual node
+        ConsistentHashRouter<MyServiceNode> consistentHashRouter = new ConsistentHashRouter<>(
+                Arrays.asList(node1, node2, node3, node4),
+                1600, // 1600 virtual node
+                Murmur3HashFunction.MURMUR3_HASH);
 
         List<String> requestIps = new ArrayList<>();
-        for(int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 100000; i++) {
             requestIps.add(getRandomIp());
         }
 
 
         System.out.println("==========output distribution result==========");
-        System.out.println(goRoute(consistentHashRouter, requestIps.toArray(new String[requestIps.size()])).toString());
+        TreeMap<String, AtomicInteger> stats = goRoute(consistentHashRouter, requestIps.toArray(new String[requestIps.size()]));
+        System.out.println(stats);
 
+        int max = stats.values()
+                .stream()
+                .max(Comparator.comparingInt(AtomicInteger::get))
+                .get().get();
 
+        int min = stats.values()
+                .stream()
+                .min(Comparator.comparingInt(AtomicInteger::get))
+                .get().get();
+        System.out.println(String.format("max=%d min=%d max-min=%d", max, min, max - min));
     }
 
-    private static TreeMap<String, AtomicInteger> goRoute(ConsistentHashRouter<MyServiceNode> consistentHashRouter , String ... requestIps){
+    private static TreeMap<String, AtomicInteger> goRoute(ConsistentHashRouter<MyServiceNode> consistentHashRouter, String... requestIps) {
         TreeMap<String, AtomicInteger> res = new TreeMap<>();
-        for (String requestIp: requestIps) {
-            MyServiceNode mynode  = consistentHashRouter.routeNode(requestIp);
+        for (String requestIp : requestIps) {
+            MyServiceNode mynode = consistentHashRouter.routeNode(requestIp);
             res.putIfAbsent(mynode.getKey(), new AtomicInteger());
             res.get(mynode.getKey()).incrementAndGet();
-            System.out.println(requestIp + " is routed to " + mynode);
+//            System.out.println(requestIp + " is routed to " + mynode);
         }
         return res;
     }
