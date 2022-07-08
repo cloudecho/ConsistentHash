@@ -39,10 +39,11 @@ public class DistributionTestSample {
         ConsistentHashRouter<MyServiceNode> consistentHashRouter = new ConsistentHashRouter<>(
                 Arrays.asList(node1, node2, node3, node4),
                 1600, // 1600 virtual node
-                Murmur3HashFunction.MURMUR3_HASH_32);
+                DefaultHashAlgorithm.KETAMA_HASH);
 
         List<String> requestIps = new ArrayList<>();
-        for (int i = 0; i < 100000; i++) {
+        final int count = 100 * 1000;
+        for (int i = 0; i < count; i++) {
             requestIps.add(getRandomIp());
         }
 
@@ -60,7 +61,14 @@ public class DistributionTestSample {
                 .stream()
                 .min(Comparator.comparingInt(AtomicInteger::get))
                 .get().get();
-        System.out.println(String.format("max=%d min=%d max-min=%d", max, min, max - min));
+
+        double dev = stats.values()
+                .stream()
+                .mapToDouble(v -> Math.pow(v.get() - 1.0d * count / stats.size(), 2))
+                .sum();
+
+        System.out.println(String.format("max=%d min=%d max-min=%d std_dev=%.1f",
+                max, min, max - min, Math.sqrt(dev)));
     }
 
     private static TreeMap<String, AtomicInteger> goRoute(ConsistentHashRouter<MyServiceNode> consistentHashRouter, String... requestIps) {
